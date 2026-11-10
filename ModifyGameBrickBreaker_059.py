@@ -99,3 +99,45 @@ class Paddle(GameObject):
             # Bola ikut bergerak ketika belum dimulai
             if self.ball is not None:
                 self.ball.move(offset, 0)
+
+# CLASS BRICK
+
+class Brick(GameObject):
+
+    COLORS = {
+        1: "#f4a9a9",
+        2: "#a0d3f5",
+        3: "#FEF7F7"
+    }
+
+    def __init__(self, canvas, x, y, hits):
+        self.width = 70
+        self.height = 20
+        self.hits = hits
+
+        item = canvas.create_rectangle(
+            x - self.width / 2,
+            y - self.height / 2,
+            x + self.width / 2,
+            y + self.height / 2,
+            fill=self.COLORS[hits],
+            outline="white",
+            tags="brick"
+        )
+
+        super().__init__(canvas, item)
+
+    def hit(self):
+        self.hits -= 1
+
+        if self.hits <= 0:
+            self.delete()
+            return True
+
+        self.canvas.itemconfig(
+            self.item,
+            fill=self.COLORS[self.hits]
+        )
+
+        return False
+
