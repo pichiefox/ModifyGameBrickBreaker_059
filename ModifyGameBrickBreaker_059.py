@@ -141,3 +141,97 @@ class Brick(GameObject):
 
         return False
 
+# CLASS GAME
+class Game(tk.Frame):
+
+    def __init__(self, master):
+        super().__init__(master)
+
+        self.width = 610
+        self.height = 450
+
+        self.lives = 3
+        self.score = 0
+
+        self.state = "ready"
+        self.items = {}
+        self.ball = None
+
+        self.canvas = tk.Canvas(
+            self,
+            width=self.width,
+            height=self.height,
+            bg="#1e272e",
+            highlightthickness=0
+        )
+
+        self.canvas.pack()
+        self.pack()
+
+        # Membuat paddle
+        self.paddle = Paddle(
+            self.canvas,
+            self.width / 2,
+            410
+        )
+
+        # HUD
+        self.hud = self.canvas.create_text(
+            70, 20,
+            text="Lives: 3",
+            fill="white",
+            font=("Arial", 14, "bold")
+        )
+
+        self.score_text = self.canvas.create_text(
+            520, 20,
+            text="Score: 0",
+            fill="white",
+            font=("Arial", 14, "bold")
+        )
+
+        # Membuat balok
+        self.create_bricks()
+
+        # Membuat bola
+        self.add_ball()
+
+        # Pesan awal
+        self.message = self.draw_text(
+            305, 220,
+            "PRESS SPACE TO START",
+            22
+        )
+
+        # Kontrol keyboard
+        self.canvas.focus_set()
+
+        self.canvas.bind(
+            "<Left>",
+            lambda event: self.paddle.move(-20)
+        )
+
+        self.canvas.bind(
+            "<Right>",
+            lambda event: self.paddle.move(20)
+        )
+
+        self.canvas.bind(
+            "<space>",
+            self.start_game
+        )
+
+        self.canvas.bind(
+            "<p>",
+            self.pause_game
+        )
+
+        self.canvas.bind(
+            "<r>",
+            self.restart_game
+        )
+
+        self.canvas.bind(
+            "<R>",
+            self.restart_game
+        )
