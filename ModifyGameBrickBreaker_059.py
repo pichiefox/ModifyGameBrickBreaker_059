@@ -235,3 +235,272 @@ class Game(tk.Frame):
             "<R>",
             self.restart_game
         )
+
+    # MEMBUAT BALOK
+    def create_bricks(self):
+        self.items = {}
+
+        for x in range(45, self.width - 30, 80):
+
+            self.add_brick(x, 65, 3)
+            self.add_brick(x, 90, 2)
+            self.add_brick(x, 115, 1)
+
+    def add_brick(self, x, y, hits):
+        brick = Brick(
+            self.canvas,
+            x,
+            y,
+            hits
+        )
+
+        self.items[brick.item] = brick
+
+    # MEMBUAT BOLA
+
+    def add_ball(self):
+        if self.ball is not None:
+            self.ball.delete()
+
+        coords = self.paddle.get_position()
+
+        x = (coords[0] + coords[2]) / 2
+        y = coords[1] - 15
+
+        self.ball = Ball(
+            self.canvas,
+            x,
+            y
+        )
+
+        self.paddle.set_ball(self.ball)
+
+    # MENAMPILKAN TEKS
+    def draw_text(self, x, y, text, size=20):
+        return self.canvas.create_text(
+            x,
+            y,
+            text=text,
+            fill="white",
+            font=("Arial", size, "bold")
+        )
+
+    # UPDATE HUD   
+    def update_hud(self):
+        self.canvas.itemconfig(
+            self.hud,
+            text=f"Lives: {self.lives}"
+        )
+
+        self.canvas.itemconfig(
+            self.score_text,
+            text=f"Score: {self.score}"
+        )
+
+    # MEMULAI GAME
+
+    def start_game(self, event=None):
+
+        if self.state in ("running", "won", "lost"):
+            return
+
+        if self.state == "paused":
+            self.state = "running"
+
+        else:
+            self.state = "running"
+
+        self.canvas.delete(self.message)
+
+        # Bola tidak lagi mengikuti paddle
+        self.paddle.set_ball(None)
+
+        self.game_loop()
+
+    # PAUSE GAME
+
+    def pause_game(self, event=None):
+
+        if self.state == "running":
+            self.state = "paused"
+
+            self.message = self.draw_text(
+                305, 220,
+                "PAUSED - PRESS P TO RESUME",
+                18
+            )
+
+        elif self.state == "paused":
+            self.canvas.delete(self.message)
+            self.state = "running"
+            self.game_loop()
+    # RESTART GAME
+
+    def restart_game(self, event=None):
+
+        self.state = "ready"
+
+        self.canvas.delete("all")
+
+        self.lives = 3
+        self.score = 0
+        self.ball = None
+
+        # Membuat ulang paddle
+        self.paddle = Paddle(
+            self.canvas,
+            self.width / 2,
+            410
+        )
+
+        # Membuat ulang HUD
+        self.hud = self.canvas.create_text(
+            70, 20,
+            text="Lives: 3",
+            fill="white",
+            font=("Arial", 14, "bold")
+        )
+
+        self.score_text = self.canvas.create_text(
+            520, 20,
+            text="Score: 0",
+            fill="white",
+            font=("Arial", 14, "bold")
+        )
+
+        self.create_bricks()
+        self.add_ball()
+
+        self.message = self.draw_text(
+            305, 220,
+            "PRESS SPACE TO START",
+            22
+        )
+
+    # --------------------------------------
+    # GAME LOOP
+    # --------------------------------------
+
+    def game_loop(self):
+
+        if self.state != "running":
+            return
+
+        self.check_collisions()
+
+        # Cek kemenangan
+        if len(self.canvas.find_withtag("brick")) == 0:
+            self.state = "won"
+
+            self.draw_text(
+                305, 220,
+                "YOU WIN!",
+                35
+            )
+
+            return
+
+        # Update posisi bola
+        self.ball.update()
+
+        # Cek apakah bola jatuh
+        if self.ball.get_position()[3] >= self.height:
+
+            self.lives -= 1
+            self.update_hud()
+
+            if self.lives <= 0:
+                self.state = "lost"
+
+                self.draw_text(
+                    305, 220,
+                    "GAME OVER!",
+                    35
+                )
+
+                return
+
+            # Reset posisi bola
+            self.add_ball()
+
+            self.message = self.draw_text(
+                305, 220,
+                "PRESS SPACE TO CONTINUE",
+                18
+            )
+
+            self.state = "ready"
+            return
+
+        # Jalankan ulang setelah 16 ms
+        self.after(16, self.game_loop)
+
+    # DETEKSI COLLISION
+
+    def check_collisions(self):
+
+        ball_coords = self.ball.get_position()
+
+        previous_bottom = ball_coords[3] - self.ball.dy
+
+        # Deteksi objek yang bersentuhan dengan bola
+        overlapping = self.canvas.find_overlapping(
+            *ball_coords
+        )
+
+        for item in overlapping:
+
+            # Tabrakan dengan paddle
+            if item == self.paddle.item:
+
+                paddle_coords = self.paddle.get_position()
+
+                if (
+                    self.ball.dy > 0
+                    and previous_bottom <= paddle_coords[1] + 5
+                ):
+
+                    self.ball.dy = -abs(self.ball.dy)
+
+                    # Arah bola berdasarkan posisi pantulan
+                    ball_center = (
+                        ball_coords[0] + ball_coords[2]
+                    ) / 2
+
+                    paddle_center = (
+                        paddle_coords[0] + paddle_coords[2]
+                    ) / 2
+
+                    offset = (
+                        ball_center - paddle_center
+                    ) / (self.paddle.width / 2)
+
+                    self.ball.dx = offset * 6
+
+                    if abs(self.ball.dx) < 1:
+                        self.ball.dx = random.choice([-1, 1])
+
+                continue
+
+            # Tabrakan dengan brick
+            if item in self.items:
+
+                brick = self.items[item]
+
+                destroyed = brick.hit()
+
+                # Pantulkan bola
+                self.ball.dy *= -1
+
+                # Tambahkan skor
+                if destroyed:
+                    self.score += 10
+
+                else:
+                    self.score += 5
+
+                self.update_hud()
+
+                # Hanya proses satu tabrakan per frame
+                break
+
