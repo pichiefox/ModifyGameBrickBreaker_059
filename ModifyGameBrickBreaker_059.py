@@ -504,3 +504,15 @@ class Game(tk.Frame):
                 # Hanya proses satu tabrakan per frame
                 break
 
+# MAIN PROGRAM
+if __name__ == "__main__":
+
+    root = tk.Tk()
+
+    root.title("Brick Breaker Game")
+
+    root.resizable(False, False)
+
+    game = Game(root)
+
+    game.mainloop()
